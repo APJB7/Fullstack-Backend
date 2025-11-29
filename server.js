@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 
 const { connectToDatabase } = require('./db');
 
@@ -9,6 +11,19 @@ app.use(express.json());
 
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:8080';
 
+app.get('/images/:fileName', (req, res) => {
+    const fileName = req.params.fileName;
+    const imagePath = path.join(__dirname, 'images', fileName);
+
+    fs.access(imagePath, fs.constants.F_OK, (err) => {
+        if (err) {
+            console.log(`Image not found: ${imagePath}`);
+            return res.status(404).json({ error: 'Image not found' });
+        }
+        res.sendFile(imagePath);
+    });
+
+});
 app.use((req, res, next) => {
     const now = new Date().toISOString();
     console.log(`[${now}] ${req.method} ${req.url}`);
