@@ -1,14 +1,23 @@
-const express = require("express");
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+
 const app = express();
-const PORT = 3000;
+app.use(express.json());
 
-// Simple test route
-app.get("/", (req, res) => {
-    res.send("Backend is working!");
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:8080';
+
+app.use(cors({
+    origin: [FRONTEND_ORIGIN, 'http://localhost:3000', 'http://127.0.0.1:3000'],
+    methods: ['GET', 'POST', 'PUT', 'OPTIONS'],
+    allowedHeaders: ['Content-Type'],
+}));
+
+app.get('/health', (req, res) => {
+    res.json({status: 'ok', message: 'Backend is running'});
 });
 
-// Start server
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+    console.log(`Server is listening on http://localhost:${PORT}`);
 });
-
