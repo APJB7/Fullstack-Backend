@@ -22,7 +22,19 @@ app.get('/images/:fileName', (req, res) => {
         }
         res.sendFile(imagePath);
     });
+});
 
+app.get('/lessons', async (req,res) => {
+    try {
+        const db = req.app.locals.db;
+        const lessonsCollection = db.collection('lessons');
+
+        const lessons = await lessonsCollection.find({}).toArray();
+        res.json(lessons);
+    } catch (err){
+        console.error('Error in GET /lessons:', err);   
+        res.status(500).json({ error: 'Failed to fetch lessons' });
+    }
 });
 app.use((req, res, next) => {
     const now = new Date().toISOString();
