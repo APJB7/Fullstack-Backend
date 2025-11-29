@@ -71,6 +71,43 @@ app.post('/orders', async (req, res) => {
         res.status(500).json({ error: 'Failed to save order' });
     }
 });
+
+app.put('/lessons/:id', async (req, res) => {
+    try {
+        const db = req.app.locals.db;
+        const lessonsCollection = db.collection('lessons');
+        const id = parseInt(req.params.id, 10);
+
+        if (Number.isNaN(id)) {
+            return res.status(400).json({ error: 'Invalid lesson ID, must be a number' });
+        }
+
+        const updates = { ...req.body  };
+        delete updates._id;
+
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({ error: 'No valid fields to update' });
+        }
+
+        const result = await lessonsCollection.updateOne(
+            { id },
+            { $set: updates }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ error: 'Lesson not found' });
+        }
+
+        res.json({ 
+            message: 'Lesson updated successfully',
+            updateId: id,
+            modifiedCount: result.modifiedCount
+         });
+    } catch (err) {
+        console.error('Error in PUT /lessons/:id:', err);
+        res.status(500).json({ error: 'Failed to update lesson' });
+    }
+});
 app.use((req, res, next) => {
     const now = new Date().toISOString();
     console.log(`[${now}] ${req.method} ${req.url}`);
