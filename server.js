@@ -36,6 +36,41 @@ app.get('/lessons', async (req,res) => {
         res.status(500).json({ error: 'Failed to fetch lessons' });
     }
 });
+
+app.post('/orders', async (req, res) => {
+    try {
+        const db = req.app.locals.db;
+        const ordersCollection = db.collection('orders');
+
+        const {name, phone, items} = req.body;
+
+        if (!name || !phone || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'name, phone, items[] are required' });
+        }
+
+        const lessonIds = items.map(i => i.lessonId);
+        const totalSpaces = items.reduce((sum, i) => sum + (i.qty || 0), 0);
+
+        const orderDocument = {
+            name,
+            phone,
+            lessonIds,
+            totalSpaces,
+            items,
+            createdAt: new Date()
+        };
+
+        const result = await ordersCollection.insertOne(orderDocument);
+
+        res.status(201).json({
+            message: 'Order created successfully',
+            orderId: result.insertedId
+        });
+    } catch (err) {
+        console.error('Error in POST /orders:', err);
+        res.status(500).json({ error: 'Failed to save order' });
+    }
+});
 app.use((req, res, next) => {
     const now = new Date().toISOString();
     console.log(`[${now}] ${req.method} ${req.url}`);
