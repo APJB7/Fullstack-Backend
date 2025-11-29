@@ -108,6 +108,42 @@ app.put('/lessons/:id', async (req, res) => {
         res.status(500).json({ error: 'Failed to update lesson' });
     }
 });
+
+app.get('/search', async(req, res) => {
+    try{
+        const db = req.app.locals.db;
+        const lessonsCollection = db.collection('lessons');
+
+        const q = (req.query.q || '').trim();
+        if (!q) {
+            const all = await lessonsCollection.find({}).toArray();
+            return res.json(all);
+        }
+
+        const regex = new RegExp(q, 'i');
+        const numVal = Number(q);
+        const numValid = !Number.isNaN(numVal);
+
+        const orConditions = [
+            { subject: { $regex: regex } },
+            { topic: { $regex: regex } },
+            { location: { $regex: regex } }
+        ];
+
+        if (numValid) {
+            orConditions.push({ price: numVal });
+            orConditions.push({ space: numVal });
+        }
+
+        const results = await lessonsCollection.find({ $or: orConditions }).toArray();
+        res.json(results);
+        
+    } catch (err) {
+        console.error('Error in GET /search:', err);
+        res.status(500).json({ error: 'Search failed' });
+    }
+})
+
 app.use((req, res, next) => {
     const now = new Date().toISOString();
     console.log(`[${now}] ${req.method} ${req.url}`);
