@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
+const { connectToDatabase } = require('./db');
+
 const app = express();
 app.use(express.json());
 
@@ -18,6 +20,13 @@ app.get('/health', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server is listening on http://localhost:${PORT}`);
+connectToDatabase().then((db) => {
+    app.locals.db = db;
+    app.listen(PORT, () => {
+        console.log(`Server is running at  http://localhost:${PORT}`);
+    });
+})
+.catch(err => {
+    console.error('Failed to connect to the database', err);
+    process.exit(1);
 });
