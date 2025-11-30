@@ -7,9 +7,16 @@ const fs = require('fs');
 const { connectToDatabase } = require('./db');
 
 const app = express();
+
 app.use(express.json());
 
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:8080';
+app.use((req, res, next) => {
+    const now = new Date().toISOString();
+    console.log(`[${now}] ${req.method} ${req.url}`);
+    next();
+})
+
+app.use(cors());
 
 app.get('/images/:fileName', (req, res) => {
     const fileName = req.params.fileName;
@@ -24,15 +31,15 @@ app.get('/images/:fileName', (req, res) => {
     });
 });
 
-app.get('/lessons', async (req,res) => {
+app.get('/lessons', async (req, res) => {
     try {
         const db = req.app.locals.db;
         const lessonsCollection = db.collection('lessons');
 
         const lessons = await lessonsCollection.find({}).toArray();
         res.json(lessons);
-    } catch (err){
-        console.error('Error in GET /lessons:', err);   
+    } catch (err) {
+        console.error('Error in GET /lessons:', err);
         res.status(500).json({ error: 'Failed to fetch lessons' });
     }
 });
@@ -42,7 +49,7 @@ app.post('/orders', async (req, res) => {
         const db = req.app.locals.db;
         const ordersCollection = db.collection('orders');
 
-        const {name, phone, items} = req.body;
+        const { name, phone, items } = req.body;
 
         if (!name || !phone || !Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ error: 'name, phone, items[] are required' });
@@ -82,7 +89,7 @@ app.put('/lessons/:id', async (req, res) => {
             return res.status(400).json({ error: 'Invalid lesson ID, must be a number' });
         }
 
-        const updates = { ...req.body  };
+        const updates = { ...req.body };
         delete updates._id;
 
         if (Object.keys(updates).length === 0) {
@@ -98,19 +105,19 @@ app.put('/lessons/:id', async (req, res) => {
             return res.status(404).json({ error: 'Lesson not found' });
         }
 
-        res.json({ 
+        res.json({
             message: 'Lesson updated successfully',
             updateId: id,
             modifiedCount: result.modifiedCount
-         });
+        });
     } catch (err) {
         console.error('Error in PUT /lessons/:id:', err);
         res.status(500).json({ error: 'Failed to update lesson' });
     }
 });
 
-app.get('/search', async(req, res) => {
-    try{
+app.get('/search', async (req, res) => {
+    try {
         const db = req.app.locals.db;
         const lessonsCollection = db.collection('lessons');
 
@@ -137,37 +144,26 @@ app.get('/search', async(req, res) => {
 
         const results = await lessonsCollection.find({ $or: orConditions }).toArray();
         res.json(results);
-        
+
     } catch (err) {
         console.error('Error in GET /search:', err);
         res.status(500).json({ error: 'Search failed' });
     }
 })
 
-app.use((req, res, next) => {
-    const now = new Date().toISOString();
-    console.log(`[${now}] ${req.method} ${req.url}`);
-    next();
-})
-
-app.use(cors({
-    origin: [FRONTEND_ORIGIN, 'http://localhost:3000', 'http://127.0.0.1:3000'],
-    methods: ['GET', 'POST', 'PUT', 'OPTIONS'],
-    allowedHeaders: ['Content-Type'],
-}));
-
 app.get('/health', (req, res) => {
-    res.json({status: 'ok', message: 'Backend is running'});
+    res.json({ status: 'ok', message: 'Backend is running' });
 });
 
 const PORT = process.env.PORT || 3000;
+
 connectToDatabase().then((db) => {
     app.locals.db = db;
     app.listen(PORT, () => {
         console.log(`Server is running at  http://localhost:${PORT}`);
     });
 })
-.catch(err => {
-    console.error('Failed to connect to the database', err);
-    process.exit(1);
-});
+    .catch(err => {
+        console.error('Failed to connect to the database', err);
+        process.exit(1);
+    });
