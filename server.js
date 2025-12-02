@@ -128,19 +128,34 @@ app.get('/search', async (req, res) => {
         }
 
         const regex = new RegExp(q, 'i');
-        const numVal = Number(q);
-        const numValid = !Number.isNaN(numVal);
 
         const orConditions = [
             { subject: { $regex: regex } },
             { topic: { $regex: regex } },
-            { location: { $regex: regex } }
-        ];
+            { location: { $regex: regex } },
 
-        if (numValid) {
-            orConditions.push({ price: numVal });
-            orConditions.push({ space: numVal });
-        }
+            {
+                $expr: {
+                    $regexMatch: {
+                        input: { $toString: "$price" },
+                        regex: q,
+                        options: "i"
+                    }
+                }
+            },
+
+            {
+                $expr: {
+                    $regexMatch: {
+                        input: { $toString: "$space" },
+                        regex: q,
+                        options: "i"
+                    }
+                }
+
+            }
+
+        ];
 
         const results = await lessonsCollection.find({ $or: orConditions }).toArray();
         res.json(results);
