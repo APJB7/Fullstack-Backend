@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const morgan = require('morgan');
 
 const { connectToDatabase } = require('./db');
 
@@ -10,11 +11,20 @@ const app = express();
 
 app.use(express.json());
 
+app.use(morgan('dev'));
+
 app.use((req, res, next) => {
     const now = new Date().toISOString();
-    console.log(`[${now}] ${req.method} ${req.url}`);
+    console.log("---- LOGGER ----");
+    console.log("Time:", now);
+    console.log("Method:", req.method);
+    console.log("URL:", req.originalUrl);
+    console.log("Query:", req.query);
+    console.log("Body:", req.body);
+    console.log("----------------");
     next();
 })
+
 
 app.use(cors());
 
