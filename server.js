@@ -94,13 +94,11 @@ app.post('/orders', async (req, res) => {
             return res.status(400).json({ error: 'Each item must have a valid lessonId (positive integer) and qty (positive integer)' });
         };
 
-        const lessonIds = items.map(i => i.lessonId);
         const totalSpaces = items.reduce((sum, i) => sum + (i.qty || 0), 0);
 
         const orderDocument = {
             name,
             phone,
-            lessonIds,
             totalSpaces,
             items,
             createdAt: new Date()
