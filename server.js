@@ -1,15 +1,16 @@
 require('dotenv').config();
-import express, { json } from 'express';
-import cors from 'cors';
-import { join } from 'path';
-import { access, constants } from 'fs';
-import morgan from 'morgan';
 
-import { connectToDatabase } from './db';
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
+const morgan = require('morgan');
+
+const { connectToDatabase } = require('./db');
 
 const app = express();
 
-app.use(json());
+app.use(express.json());
 
 app.use(morgan('dev'));
 
@@ -30,9 +31,9 @@ app.use(cors());
 
 app.get('/images/:fileName', (req, res) => {
     const fileName = req.params.fileName;
-    const imagePath = join(__dirname, 'images', fileName);
+    const imagePath = path.join(__dirname, 'images', fileName);
 
-    access(imagePath, constants.F_OK, (err) => {
+    fs.access(imagePath, fs.constants.F_OK, (err) => {
         if (err) {
             console.log(`Image not found: ${imagePath}`);
             return res.status(404).json({ error: 'Image not found' });
