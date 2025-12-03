@@ -1,15 +1,15 @@
 require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
-const morgan = require('morgan');
+import express, { json } from 'express';
+import cors from 'cors';
+import { join } from 'path';
+import { access, constants } from 'fs';
+import morgan from 'morgan';
 
-const { connectToDatabase } = require('./db');
+import { connectToDatabase } from './db';
 
 const app = express();
 
-app.use(express.json());
+app.use(json());
 
 app.use(morgan('dev'));
 
@@ -30,9 +30,9 @@ app.use(cors());
 
 app.get('/images/:fileName', (req, res) => {
     const fileName = req.params.fileName;
-    const imagePath = path.join(__dirname, 'images', fileName);
+    const imagePath = join(__dirname, 'images', fileName);
 
-    fs.access(imagePath, fs.constants.F_OK, (err) => {
+    access(imagePath, constants.F_OK, (err) => {
         if (err) {
             console.log(`Image not found: ${imagePath}`);
             return res.status(404).json({ error: 'Image not found' });
@@ -64,6 +64,34 @@ app.post('/orders', async (req, res) => {
         if (!name || !phone || !Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ error: 'name, phone, items[] are required' });
         }
+
+        const nameRegex = /^[A-Za-z]+$/;
+        const phoneRegex = /^[0-9]+$/;
+
+        if (!nameRegex.test(name)) {
+            return res.status(400).json({
+                error: 'Invalid name format. Only alphabetic characters are allowed.'
+            });
+        }
+
+        if (!phoneRegex.test(phone)) {
+            return res.status(400).json({
+                error: 'Invalid phone format. Only numeric characters are allowed.'
+            });
+        }
+
+        const validItems = items.every(i =>
+            typeof i.lessonId === 'number' &&
+            Number.isInteger(i.lessonId) &&
+            i.lessonId > 0 &&
+            typeof i.qty === 'number' &&
+            Number.isInteger(i.qty) &&
+            i.qty > 0
+        );
+
+        if (!validItems) {
+            return res.status(400).json({ error: 'Each item must have a valid lessonId (positive integer) and qty (positive integer)' });
+        };
 
         const lessonIds = items.map(i => i.lessonId);
         const totalSpaces = items.reduce((sum, i) => sum + (i.qty || 0), 0);
@@ -104,6 +132,18 @@ app.put('/lessons/:id', async (req, res) => {
 
         if (Object.keys(updates).length === 0) {
             return res.status(400).json({ error: 'No valid fields to update' });
+        }
+
+        if (updates.space !== undefined) {
+            if (
+                typeof updates.space !== 'number' ||
+                !Number.isInteger(updates.space) ||
+                updates.space < 0
+            ) {
+                return res.status(400).json({
+                    error: 'space must be a non-negative integer'
+                });
+            }
         }
 
         const result = await lessonsCollection.updateOne(
